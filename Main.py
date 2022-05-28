@@ -1,4 +1,3 @@
-import time
 import cv2
 import mediapipe as mp
 import random
@@ -6,67 +5,27 @@ import random
 figure = ["ROCK", "PAPER", "SCISSORS"]
 
 
-class Visor:
-    def __init__(self):
-        self.Draw = mp.solutions.drawing_utils
-        self.camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        self.image = None
-        self.result = None
+def find_figure(tuple_landmarks):
+    def is_paper(point_8, point_12, point_16, point_20, point_6, point_10, point_14, point_18):
+        if (point_8 < point_6) and (point_12 < point_10) and (point_16 < point_14) and (point_20 < point_18):
+            return True
 
-    def vision(self):
-        with mp.solutions.hands.Hands(static_image_mode=False,
-                                      max_num_hands=1,
-                                      model_complexity=1
-                                      ) as self.hands:
-            while True:
-                _, self.image = self.camera.read()
-                self.result = self.hands.process(self.image)
-                if self.result.multi_hand_landmarks:
-                    print(game_logic(self.find_figure(self.result.multi_hand_landmarks)))
+    def is_scissors(point_8, point_12, point_16, point_20, point_6, point_10, point_14, point_18):
+        if (point_8 < point_6) and (point_12 < point_10) and (point_16 > point_14) and (point_20 > point_18):
+            return True
 
-    def find_figure(self, multi_hand_landmarks):
-        for id, lm in enumerate(multi_hand_landmarks[0].landmark):
-            h, w, _ = self.image.shape
-            cx, cy = int(lm.x * w), int(lm.y * h)
-            cv2.circle(self.image, (cx, cy), 5, (0, 0, 255))
-        self.Draw.draw_landmarks(self.image, self.result.multi_hand_landmarks[0], mp.solutions.hands.HAND_CONNECTIONS)
-        PH = self.result.multi_hand_landmarks[0].landmark
-        self.image = None
-        self.result = None
-        if is_paper(PH[8].y, PH[12].y, PH[16].y, PH[20].y, PH[6].y, PH[10].y, PH[14].y, PH[18].y):
-            return "PAPER"
-        elif is_scissors(PH[8].y, PH[12].y, PH[16].y, PH[20].y, PH[6].y, PH[10].y, PH[14].y, PH[18].y):
-            return "PAPER"
-        elif is_rock(PH[8].y, PH[12].y, PH[16].y, PH[20].y, PH[6].y, PH[10].y, PH[14].y, PH[18].y):
-            return "ROCK"
+    def is_rock(point_8, point_12, point_16, point_20, point_6, point_10, point_14, point_18):
+        if (point_8 > point_6) and (point_12 > point_10) and (point_16 > point_14) and (point_20 > point_18):
+            return True
 
-
-def timer(image):  # timer for game readiness
-    texts = ["Ready?", "3", "2", "1", "GO"]
-    for text in texts:
-        cv2.putText(img=image, text=text, org=(100, 100),
-                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=3.0,
-                    color=(255, 0, 0),
-                    thickness=3
-                    )
-        time.sleep(0.5)
-    return True
-
-
-def is_paper(point_8, point_12, point_16, point_20, point_6, point_10, point_14, point_18):
-    if (point_8 < point_6) and (point_12 < point_10) and (point_16 < point_14) and (point_20 < point_18):
-        return True
-
-
-def is_scissors(point_8, point_12, point_16, point_20, point_6, point_10, point_14, point_18):
-    if (point_8 < point_6) and (point_12 < point_10) and (point_16 > point_14) and (point_20 > point_18):
-        return True
-
-
-def is_rock(point_8, point_12, point_16, point_20, point_6, point_10, point_14, point_18):
-    if (point_8 > point_6) and (point_12 > point_10) and (point_16 > point_14) and (point_20 > point_18):
-        return True
+    if is_paper(*tuple_landmarks):
+        return "PAPER"
+    elif is_scissors(*tuple_landmarks):
+        return "SCISSORS"
+    elif is_rock(*tuple_landmarks):
+        return "ROCK"
+    else:
+        return "Not found"
 
 
 def computer_round():  # change computer answer
@@ -93,11 +52,6 @@ def game_logic(player_input):  # game logic rock paper scissors
         return "Computer wins"
 
 
-def run():
-    visor = Visor()
-    print(game_logic(visor.vision()))
-
-
 def vision_cycle():
     camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
@@ -106,36 +60,54 @@ def vision_cycle():
                                   model_complexity=1
                                   ) as hands:
         Draw = mp.solutions.drawing_utils
-
+        clock = 0
         while True:
             _, image = camera.read()
             result = hands.process(image)
-            text = ""
+
+            def print_any_text(text):
+                cv2.putText(img=image, text=text, org=(100, 100),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=3.0,
+                            color=(255, 0, 0),
+                            thickness=3
+                            )
+
+            def print_timer_text(number_word):
+                texts = ["Ready?", "3", "2", "1", "GO!"]
+                cv2.putText(img=image, text=texts[number_word], org=(100, 100),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=3.0,
+                            color=(255, 0, 0),
+                            thickness=3
+                            )
+
             if result.multi_hand_landmarks:
+                Draw.draw_landmarks(image, result.multi_hand_landmarks[0], mp.solutions.hands.HAND_CONNECTIONS,
+                                    mp.solutions.drawing_styles.get_default_hand_landmarks_style(),
+                                    mp.solutions.drawing_styles.get_default_hand_connections_style())
+                PH = result.multi_hand_landmarks[0].landmark
+                tuple_PH = (PH[8].y, PH[12].y, PH[16].y, PH[20].y, PH[6].y, PH[10].y, PH[14].y, PH[18].y)
+            image = cv2.flip(image, 1)
 
-                for id, lm in enumerate(result.multi_hand_landmarks[0].landmark):
-                    h, w, _ = image.shape
-                    cx, cy = int(lm.x * w), int(lm.y * h)
-                    cv2.circle(image, (cx, cy), 5, (0, 0, 255))
-                    Draw.draw_landmarks(image, result.multi_hand_landmarks[0], mp.solutions.hands.HAND_CONNECTIONS)
-                    PH = result.multi_hand_landmarks[0].landmark
-                if is_paper(PH[8].y, PH[12].y, PH[16].y, PH[20].y, PH[6].y, PH[10].y, PH[14].y, PH[18].y):
-                    text = "PAPER"
-                    print(game_logic(text))
-                elif is_scissors(PH[8].y, PH[12].y, PH[16].y, PH[20].y, PH[6].y, PH[10].y, PH[14].y, PH[18].y):
-                    text = "SCISSORS"
-                    print(game_logic(text))
-
-                elif is_rock(PH[8].y, PH[12].y, PH[16].y, PH[20].y, PH[6].y, PH[10].y, PH[14].y, PH[18].y):
-                    text = "ROCk"
-                    print(game_logic(text))
-
-            cv2.putText(img=image, text=text, org=(100, 100),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=3.0,
-                        color=(255, 0, 0),
-                        thickness=3
-                        )
+            if clock < 15:
+                print_timer_text(image)
+            elif clock < 30:
+                print_timer_text(image)
+            elif clock < 45:
+                print_timer_text(image)
+            elif clock < 60:
+                print_timer_text(image)
+            elif clock < 75:
+                print_timer_text(image)
+            elif clock > 75 and result.multi_hand_landmarks:
+                clock = 0
+                answer = find_figure(tuple_PH)
+                print_any_text(answer)
+                print(game_logic(answer))
+            else:
+                print_any_text("Not found")
+            clock += 1
             cv2.imshow('Rock Paper Scissors', image)
 
             if cv2.waitKey(5) & 0xFF == 27:
