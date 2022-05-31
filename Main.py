@@ -91,15 +91,15 @@ def vision_cycle():
             image = cv2.flip(image, 1)
 
             if clock < 15:
-                print_timer_text(image)
+                print_timer_text(0)
             elif clock < 30:
-                print_timer_text(image)
+                print_timer_text(1)
             elif clock < 45:
-                print_timer_text(image)
+                print_timer_text(2)
             elif clock < 60:
-                print_timer_text(image)
+                print_timer_text(3)
             elif clock < 75:
-                print_timer_text(image)
+                print_timer_text(4)
             elif clock > 75 and result.multi_hand_landmarks:
                 clock = 0
                 answer = find_figure(tuple_PH)
